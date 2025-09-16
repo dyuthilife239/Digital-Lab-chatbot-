@@ -3,3 +3,4 @@ flask-session
 openai
 gunicorn
 PyMuPDF
+PyPDF2
