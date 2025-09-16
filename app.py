@@ -1,67 +1,74 @@
 # app.py
-from flask import Flask, request, jsonify, render_template, session
-from flask_session import Session
-from openai import OpenAI
-import os, fitz
 
-# Load API Key
+from flask import Flask, request, jsonify, render_template
+from openai import OpenAI
+import os
+import PyPDF2
+
+# Load API Key (from Render environment or local .env)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Flask app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
 
-# ---- PDF LOADING ----
-COURSE_FOLDER = "."
-course_texts = {}
+# ----------- Load and Read All PDFs ------------
+pdf_folder = "./"
+course_text = ""
 
-def load_pdfs():
-    global course_texts
-    course_texts = {}
-    for file in os.listdir(COURSE_FOLDER):
-        if file.endswith(".pdf"):
-            try:
-                doc = fitz.open(os.path.join(COURSE_FOLDER, file))
-                text = ""
-                for page in doc:
-                    text += page.get_text("text")
-                course_texts[file] = text
-            except Exception as e:
-                print(f"Error loading {file}: {e}")
+for filename in os.listdir(pdf_folder):
+    if filename.endswith(".pdf"):
+        with open(os.path.join(pdf_folder, filename), "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                course_text += page.extract_text() + "\n"
 
-load_pdfs()
+# ----------- Conversation Memory ------------
+conversation_history = [
+    {
+        "role": "system",
+        "content": f"""
+        You are the **Digital Money Lab Mentor & Motivator**.
+        - Speak like a supportive coach: warm, engaging, motivational.
+        - Always explain using examples from the course PDFs (below).
+        - Give **extra external knowledge or strategies** when it helps,
+          but always connect it back to the student’s course journey.
+        - Highlight the greatness of the course and boost student confidence.
+        - Be friendly, simple, and human-like. Encourage them to take action.
 
-# ---- Routes ----
+        --- COURSE CONTENT START ---
+        {course_text}
+        --- COURSE CONTENT END ---
+        """
+    }
+]
+
+# ----------- Routes ------------
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("index.html")  # simple chat UI
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("message")
 
-    # Init session
-    if "history" not in session:
-        session["history"] = [
-            {"role": "system", "content": "You are a course assistant. Use only the uploaded course PDFs to answer."}
-        ]
+    # Add user message
+    conversation_history.append({"role": "user", "content": user_input})
 
-    # Add context from PDFs
-    context = "\n\n".join([f"{k}:\n{v[:1500]}" for k, v in course_texts.items()])
-
-    session["history"].append({"role": "user", "content": f"{user_input}\n\nReference material:\n{context}"})
-
+    # Get response from OpenAI
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=session["history"]
+        messages=conversation_history,
+        temperature=0.8,   # makes it more creative + motivational
+        max_tokens=500     # longer, detailed responses
     )
 
     reply = response.choices[0].message.content
-    session["history"].append({"role": "assistant", "content": reply})
+
+    # Add bot reply to memory
+    conversation_history.append({"role": "assistant", "content": reply})
 
     return jsonify({"reply": reply})
 
+# ----------- Run ------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
