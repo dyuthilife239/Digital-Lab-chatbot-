@@ -1,5 +1,19 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💡 Digital Lab Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
       margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     .chat-container {
       width: 100%;
@@ -69,44 +83,43 @@
 <body>
   <div class="chat-container">
     <div class="header">💡 Digital Lab Chatbot</div>
-    <div class="chat-box" id="chat-box"></div>
+    <div id="chat-box" class="chat-box"></div>
     <div class="input-area">
-      <input type="text" id="user-input" placeholder="Type your question..." />
+      <input id="user-input" type="text" placeholder="Type your question...">
       <button onclick="sendMessage()">Send</button>
     </div>
   </div>
 
   <script>
     async function sendMessage() {
-      const inputField = document.getElementById("user-input");
-      const message = inputField.value.trim();
-      if (!message) return;
-
-      // Show user message
+      const input = document.getElementById("user-input");
       const chatBox = document.getElementById("chat-box");
-      const userMsg = document.createElement("div");
-      userMsg.className = "message user-message";
-      userMsg.textContent = message;
-      chatBox.appendChild(userMsg);
-      chatBox.scrollTop = chatBox.scrollHeight;
 
-      inputField.value = "";
+      if (!input.value.trim()) return;
 
-      // Send to backend
+      // Add user message
+      const userMessage = document.createElement("div");
+      userMessage.className = "message user-message";
+      userMessage.innerText = input.value;
+      chatBox.appendChild(userMessage);
+
+      // Send to server
       const response = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message: input.value })
       });
-
       const data = await response.json();
 
-      // Show bot reply
-      const botMsg = document.createElement("div");
-      botMsg.className = "message bot-message";
-      botMsg.textContent = data.reply;
-      chatBox.appendChild(botMsg);
+      // Add bot reply
+      const botMessage = document.createElement("div");
+      botMessage.className = "message bot-message";
+      botMessage.innerText = data.reply;
+      chatBox.appendChild(botMessage);
+
+      // Auto-scroll
       chatBox.scrollTop = chatBox.scrollHeight;
+      input.value = "";
     }
   </script>
 </body>
