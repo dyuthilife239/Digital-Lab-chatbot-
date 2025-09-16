@@ -1,3 +1,5 @@
 flask
+flask-session
 openai
+
 gunicorn
