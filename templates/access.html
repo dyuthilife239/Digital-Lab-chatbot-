@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Activate</title>
+<style>
+body{background:#0b0b0b;color:#fff;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{background:#111;padding:20px;border-radius:10px}
+input{padding:10px;border-radius:6px;border:1px solid #333}
+button{padding:10px;background:#7c4dff;border:none;color:#fff;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h3>Enter your purchase code or password</h3>
+  <input id="code" placeholder="Paste code or password"><button onclick="activate()">Activate</button>
+  <p id="msg"></p>
+</div>
+<script>
+async function activate(){
+  const code = document.getElementById('code').value.trim();
+  const res = await fetch('/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+  const j = await res.json();
+  if(j.ok){
+    window.location = '/';
+  } else {
+    document.getElementById('msg').innerText = j.error || 'Activation failed';
+  }
+}
+</script>
+</body>
+</html>
