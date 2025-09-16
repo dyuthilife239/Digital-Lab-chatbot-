@@ -3,4 +3,5 @@ flask-session
 openai
 gunicorn
 pymupdf
+python-dotenv
 pypdf2
