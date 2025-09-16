@@ -1,6 +1,6 @@
 # app.py
 
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, session, send_file
 from openai import OpenAI
 import os
 from flask_session import Session
@@ -29,7 +29,7 @@ def load_course_material(pdf_files):
                 course_text += page.get_text()
     return course_text
 
-# Put your actual PDF filenames here (upload them into repo)
+# Put your actual PDF filenames here (upload them into repo root)
 course_text = load_course_material(["course1.pdf", "course2.pdf", "course3.pdf"])
 
 # ✅ Analytics logging
@@ -75,6 +75,14 @@ def chat():
     log_interaction(user_input, reply)
 
     return jsonify({"reply": reply})
+
+# ✅ New route to download analytics
+@app.route("/analytics")
+def download_analytics():
+    if os.path.exists("analytics.csv"):
+        return send_file("analytics.csv", as_attachment=True)
+    else:
+        return "No analytics data yet.", 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
