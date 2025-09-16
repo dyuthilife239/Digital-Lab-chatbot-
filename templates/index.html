@@ -6,7 +6,7 @@
 <title>Digital Lab Chatbot</title>
 <style>
   body{background:#0b0b0b;color:#fff;font-family:Inter,Arial;margin:0;display:flex;align-items:center;justify-content:center;height:100vh}
-  .card{width:100%;max-width:420px;background:#111;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
+  .card{width:100%;max-width:420px;height:95vh;background:#111;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
   .header{padding:14px;background:linear-gradient(90deg,#7c4dff,#4dd0e1);font-weight:600;text-align:center}
   .chat{flex:1;padding:12px;overflow:auto}
   .msg{margin:8px 0;padding:10px;border-radius:12px;max-width:80%;word-break:break-word}
@@ -17,7 +17,6 @@
   input[type=text]{flex:1;padding:10px;border-radius:20px;border:1px solid #222;background:#080808;color:#fff}
   button{background:#7c4dff;color:#fff;border:none;padding:10px 14px;border-radius:12px;cursor:pointer}
   small{color:#999}
-  .file{color:#ddd}
 </style>
 </head>
 <body>
@@ -27,14 +26,14 @@
 
     <div class="controls">
       <div class="row">
-        <input id="input" type="text" placeholder="Ask about the course or request a 30-day plan...">
+        <input id="input" type="text" placeholder="Type your question...">
         <button onclick="send()">Send</button>
       </div>
 
       <div class="row">
-        <input id="image" type="file" accept="image/*" style="display:block">
-        <button onclick="uploadImage()">Upload Image</button>
-        <button onclick="uploadFile()">Upload PDF</button>
+        <input id="image" type="file" accept="image/*">
+        <button onclick="uploadImage()">📷 Image</button>
+        <button onclick="uploadFile()">📁 PDF</button>
       </div>
 
       <div class="row">
@@ -43,7 +42,7 @@
         <button onclick="generateQuiz()">📝 Quiz</button>
       </div>
 
-      <div><small>Tip: Ask "30-day plan for Dropshipping Mastery"</small></div>
+      <div><small>Tip: Try asking "Make me a 30-day plan for Dropshipping Mastery"</small></div>
     </div>
   </div>
 
@@ -70,7 +69,7 @@ function addMsg(text,cls){
 
 async function uploadImage(){
   const f = document.getElementById('image').files[0];
-  if(!f) return alert('Select image');
+  if(!f) return alert('Select an image');
   addMsg('📷 Image uploaded...','me');
   const fd = new FormData(); fd.append('image', f);
   const res = await fetch('/upload-image',{method:'POST',body:fd});
@@ -103,19 +102,17 @@ function speakText(text){
 
 function startVoice(){
   if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
-    alert('Voice not supported in this browser. Use Chrome on desktop/mobile.');
+    alert('Voice not supported in this browser. Use Chrome.');
     return;
   }
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const rec = new SpeechRecognition();
   rec.lang = 'en-US';
-  rec.interimResults = false;
   rec.onresult = e => {
     const text = e.results[0][0].transcript;
     document.getElementById('input').value = text;
     send();
   };
-  rec.onerror = e => console.log(e);
   rec.start();
 }
 
@@ -125,7 +122,7 @@ async function downloadTranscript(){
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'transcript.txt'; a.click();
-  } else { alert('Failed'); }
+  } else { alert('Transcript download failed'); }
 }
 
 async function generateQuiz(){
@@ -134,7 +131,7 @@ async function generateQuiz(){
   addMsg('📝 Generating quiz...','me');
   const res = await fetch('/quiz',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,length:5})});
   const j = await res.json();
-  addMsg(j.quiz,'bot'); speakText('Quiz generated and displayed');
+  addMsg(j.quiz,'bot'); speakText('Here is your quiz.');
 }
 </script>
 </body>
