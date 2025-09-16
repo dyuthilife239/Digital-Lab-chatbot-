@@ -1,126 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>💡 Digital Lab Chatbot</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .chat-container {
-      width: 100%;
-      max-width: 420px;
-      height: 90vh;
-      background: #fff;
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .header {
-      background: #4CAF50;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .chat-box {
-      flex: 1;
-      padding: 15px;
-      overflow-y: auto;
-      background: #f9f9f9;
-    }
-    .message {
-      margin: 8px 0;
-      padding: 10px 15px;
-      border-radius: 18px;
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-    .user-message {
-      background: #DCF8C6;
-      align-self: flex-end;
-    }
-    .bot-message {
-      background: #e6e6e6;
-      align-self: flex-start;
-    }
-    .input-area {
-      display: flex;
-      border-top: 1px solid #ddd;
-    }
-    input {
-      flex: 1;
-      border: none;
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 0;
-      outline: none;
-    }
-    button {
-      background: #4CAF50;
-      border: none;
-      color: white;
-      padding: 12px 20px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover {
-      background: #45a049;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digital Lab Chatbot</title>
+<style>
+  body{background:#0b0b0b;color:#fff;font-family:Inter,Arial;margin:0;display:flex;align-items:center;justify-content:center;height:100vh}
+  .card{width:100%;max-width:420px;background:#111;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
+  .header{padding:14px;background:linear-gradient(90deg,#7c4dff,#4dd0e1);font-weight:600;text-align:center}
+  .chat{flex:1;padding:12px;overflow:auto}
+  .msg{margin:8px 0;padding:10px;border-radius:12px;max-width:80%;word-break:break-word}
+  .me{background:#00e5a8;color:#000;margin-left:auto;border-bottom-right-radius:2px}
+  .bot{background:#1f1f1f;border:1px solid #222;color:#ddd}
+  .controls{padding:10px;background:#0f0f0f;display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;gap:8px}
+  input[type=text]{flex:1;padding:10px;border-radius:20px;border:1px solid #222;background:#080808;color:#fff}
+  button{background:#7c4dff;color:#fff;border:none;padding:10px 14px;border-radius:12px;cursor:pointer}
+  small{color:#999}
+  .file{color:#ddd}
+</style>
 </head>
 <body>
-  <div class="chat-container">
-    <div class="header">💡 Digital Lab Chatbot</div>
-    <div id="chat-box" class="chat-box"></div>
-    <div class="input-area">
-      <input id="user-input" type="text" placeholder="Type your question...">
-      <button onclick="sendMessage()">Send</button>
+  <div class="card">
+    <div class="header">💡 Digital Lab Chatbot — Student Support</div>
+    <div id="chat" class="chat"></div>
+
+    <div class="controls">
+      <div class="row">
+        <input id="input" type="text" placeholder="Ask about the course or request a 30-day plan...">
+        <button onclick="send()">Send</button>
+      </div>
+
+      <div class="row">
+        <input id="image" type="file" accept="image/*" style="display:block">
+        <button onclick="uploadImage()">Upload Image</button>
+        <button onclick="uploadFile()">Upload PDF</button>
+      </div>
+
+      <div class="row">
+        <button onclick="startVoice()">🎙️ Speak</button>
+        <button onclick="downloadTranscript()">📥 Transcript</button>
+        <button onclick="generateQuiz()">📝 Quiz</button>
+      </div>
+
+      <div><small>Tip: Ask "30-day plan for Dropshipping Mastery"</small></div>
     </div>
   </div>
 
-  <script>
-    async function sendMessage() {
-      const input = document.getElementById("user-input");
-      const chatBox = document.getElementById("chat-box");
+<script>
+async function send(){
+  const val = document.getElementById("input").value.trim();
+  if(!val) return;
+  addMsg(val,'me');
+  document.getElementById("input").value = '';
+  const res = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:val})});
+  const j = await res.json();
+  addMsg(j.reply,'bot');
+  speakText(j.reply);
+}
 
-      if (!input.value.trim()) return;
+function addMsg(text,cls){
+  const c = document.getElementById('chat');
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.innerText = text;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
 
-      // Add user message
-      const userMessage = document.createElement("div");
-      userMessage.className = "message user-message";
-      userMessage.innerText = input.value;
-      chatBox.appendChild(userMessage);
+async function uploadImage(){
+  const f = document.getElementById('image').files[0];
+  if(!f) return alert('Select image');
+  addMsg('📷 Image uploaded...','me');
+  const fd = new FormData(); fd.append('image', f);
+  const res = await fetch('/upload-image',{method:'POST',body:fd});
+  const j = await res.json();
+  addMsg(j.reply,'bot'); speakText(j.reply);
+}
 
-      // Send to server
-      const response = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input.value })
-      });
-      const data = await response.json();
+async function uploadFile(){
+  const input = document.createElement('input');
+  input.type='file'; input.accept='.pdf';
+  input.onchange = async ()=> {
+    const f = input.files[0];
+    if(!f) return;
+    const fd = new FormData(); fd.append('file', f);
+    addMsg('📁 File uploaded','me');
+    const res = await fetch('/upload-file',{method:'POST',body:fd});
+    const j = await res.json();
+    addMsg(j.reply,'bot'); speakText(j.reply);
+  };
+  input.click();
+}
 
-      // Add bot reply
-      const botMessage = document.createElement("div");
-      botMessage.className = "message bot-message";
-      botMessage.innerText = data.reply;
-      chatBox.appendChild(botMessage);
+function speakText(text){
+  if('speechSynthesis' in window){
+    const s = new SpeechSynthesisUtterance(text);
+    s.lang = 'en-US';
+    window.speechSynthesis.speak(s);
+  }
+}
 
-      // Auto-scroll
-      chatBox.scrollTop = chatBox.scrollHeight;
-      input.value = "";
-    }
-  </script>
+function startVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    alert('Voice not supported in this browser. Use Chrome on desktop/mobile.');
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SpeechRecognition();
+  rec.lang = 'en-US';
+  rec.interimResults = false;
+  rec.onresult = e => {
+    const text = e.results[0][0].transcript;
+    document.getElementById('input').value = text;
+    send();
+  };
+  rec.onerror = e => console.log(e);
+  rec.start();
+}
+
+async function downloadTranscript(){
+  const res = await fetch('/download-transcript');
+  if(res.status === 200){
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'transcript.txt'; a.click();
+  } else { alert('Failed'); }
+}
+
+async function generateQuiz(){
+  const topic = prompt('Enter topic for quiz (e.g., Module 2: Product Research)');
+  if(!topic) return;
+  addMsg('📝 Generating quiz...','me');
+  const res = await fetch('/quiz',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,length:5})});
+  const j = await res.json();
+  addMsg(j.quiz,'bot'); speakText('Quiz generated and displayed');
+}
+</script>
 </body>
 </html>
