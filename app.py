@@ -1,41 +1,38 @@
 # app.py
+
 from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
 import os
-import PyPDF2
 
-# Load API Key (set in Render environment)
+# Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Flask app
 app = Flask(__name__)
 
-# Function to load all PDFs in the project folder
-def load_all_pdfs():
-    text = ""
-    for file in os.listdir("."):
-        if file.endswith(".pdf"):
-            try:
-                with open(file, "rb") as pdf_file:
-                    reader = PyPDF2.PdfReader(pdf_file)
-                    for page in reader.pages:
-                        text += page.extract_text() + "\n"
-            except Exception as e:
-                print(f"❌ Could not read {file}: {e}")
-    return text
+# Load course order from order.txt
+def load_course_order():
+    if os.path.exists("order.txt"):
+        with open("order.txt", "r", encoding="utf-8") as f:
+            return f.read()
+    return "No course order found."
 
-# Load all PDF course material automatically
-course_text = load_all_pdfs()
+course_order = load_course_order()
 
-# Conversation memory
+# Memory (chat history per session)
 conversation_history = [
-    {"role": "system", "content": f"""
-    You are the Digital Money Lab assistant. 
-    You have access to this course material:\n\n{course_text}\n\n
-    Your job is to explain the course clearly, give extra advice,
-    encourage students, and always highlight the greatness of the course.
-    Be friendly and motivational.
-    """}
+    {
+        "role": "system",
+        "content": (
+            "You are the Digital Lab chatbot. "
+            "You guide students through three main courses: "
+            "1) Digital Money Lab, 2) Dropshipping Mastery, 3) AI Business. "
+            "Always use the official module order from 'order.txt'. "
+            "When asked for study plans (like 30-day breakdowns), evenly split modules by days. "
+            "Be friendly, motivational, and structured in responses."
+        )
+    },
+    {"role": "system", "content": "Here is the official course module order:\n" + course_order}
 ]
 
 @app.route("/")
@@ -45,11 +42,11 @@ def home():
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("message")
-    
-    # Add user input
+
+    # Add user message
     conversation_history.append({"role": "user", "content": user_input})
 
-    # Get response from OpenAI
+    # Ask OpenAI
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=conversation_history
@@ -57,7 +54,7 @@ def chat():
 
     reply = response.choices[0].message.content
 
-    # Add reply to memory
+    # Save bot response to history
     conversation_history.append({"role": "assistant", "content": reply})
 
     return jsonify({"reply": reply})
